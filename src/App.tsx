@@ -222,14 +222,14 @@ export default function App() {
           <h2 className="section__title">Hi, I’m Emirhan</h2>
           <div className="about">
             <p>
-              34 yaşında bir oyun programcısıyım. Kod kalitesi, performans ve
-              oynanış hissi benim için öncelikli. Zor problemleri çözmeyi,
-              öğrenmeyi ve bildiklerimi geliştirmeyi seviyorum.
+              
+              I am a 23 year old game programmer that's currently Junior Developer. </p>
+            <p>I describe myself as a problem solver that seeks opportunities to learn new things, at the same time, constantly improving my skills. I enjoy creating games that feel great to play, with clean code that is easy to read. I thrive on difficult challenges, maybe a little too much sometimes as I have a hard time letting go if I can not come up with a solution during a coding session.
             </p>
             <p>
-              Daha fazlası için yukarıdaki sosyal hesaplarıma ya da CV’deki
-              iletişim bilgilerime ulaşabilirsiniz.
+Want to know more? You can find my contact information in my resume at the top. You can feel free to reach me.
             </p>
+           
           </div>
         </section>
 
@@ -398,8 +398,14 @@ function Style() {
   /* =========
      ABOUT & FOOTER
   ========= */
-  .about{ display:grid; gap:10px; color:#d8d8e2; }
-  .footer{ margin-top:56px; color:var(--muted); text-align:center; }
+  #about{ margin-top: 150px;}
+  .about{ font-size:22px; display:grid; gap:1px; color:#d8d8e2; }
+footer {
+  background-color: #0b0b0e; /* siyah arka plan */
+  text-align: center;
+  padding:30px 0; /* Üst-alt boşluğu büyüt */
+}
+
 
   /* =========
      RESPONSIVE
