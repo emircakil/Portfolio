@@ -39,8 +39,11 @@ interface Project {
   duration: string;
   tech: string;
   description: string;
-  image?: string; // Poster veya görsel (opsiyonel)
+  image: string;       // ZORUNLU: poster görseli (public/ veya import)
+  youtubeId?: string;  // OPSİYONEL: YouTube video ID (hover'da oynatmak için)
+  link?: string;       // OPSİYONEL: kart tıklanınca gidilecek referans linki
 }
+
 
 interface Education {
   school: string;
@@ -48,40 +51,97 @@ interface Education {
   degree: string;
 }
 
-const PROFILE_INITIALS = "EA"; // Emirhan Aydın varsayılan baş harfler
+
+function YouTubeEmbed({ id, active }: { id?: string; active: boolean }) {
+  if (!id) return null;
+  // Hover aktif olduğunda autoplay’li URL:
+  const src = `https://www.youtube.com/embed/${id}?autoplay=${active ? 1 : 0}&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&loop=1&playlist=${id}`;
+  return (
+    <iframe
+      className={`yt-iframe ${active ? "is-active" : ""}`}
+      src={src}
+      title="YouTube video"
+      loading="lazy"
+      allow="autoplay; encrypted-media; picture-in-picture"
+      allowFullScreen
+    />
+  );
+}
+
+function ProjectCard({ p }: { p: Project }) {
+  const [hover, setHover] = React.useState(false);
+
+  return (
+    <a
+      href={p.link || "#"}
+      target="_blank"
+      rel="noreferrer"
+      className="card card--link"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div className="card__media" aria-hidden>
+        <img className={`poster-img ${hover ? "is-dimmed" : ""}`} src={p.image} alt={`${p.title} poster`} />
+        <YouTubeEmbed id={p.youtubeId} active={hover} />
+        {!p.youtubeId && <div className="poster"><span className="poster__label">Görsel / Video</span></div>}
+      </div>
+
+      <div className="card__body">
+        <div className="card__meta">
+          <span className="badge">{p.year}</span>
+          <span className="badge">{p.duration}</span>
+          <span className="badge badge--soft">{p.tech}</span>
+        </div>
+        <h3 className="card__title">{p.title}</h3>
+        <p className="card__role">{p.role}</p>
+        <p className="card__desc">{p.description}</p>
+      </div>
+    </a>
+  );
+}
 
 const projects: Project[] = [
   {
     id: 1,
-    title: "Örnek Proje 1",
+    title: "Space Shooter Prototype",
     role: "Gameplay Programmer",
     year: "2023",
     duration: "6 Hafta",
     tech: "C++ / SDL2",
     description:
-      "Space-Shooter tarzında bir prototip. ECS mantığı ve prosedürel arka plan üretimi gibi sistemleri denemek için geliştirildi.",
+      "ECS ve prosedürel arka plan üretimi denemeleri.",
+    image: `${import.meta.env.BASE_URL}thumbs/spaceshooter.jpg`,
+    youtubeId: "dQw4w9WgXcQ",
+    link: "https://github.com/emircakil/space-shooter"
   },
   {
     id: 2,
-    title: "Örnek Proje 2",
+    title: "Bomber-like 2D",
     role: "Gameplay Programmer",
     year: "2022",
     duration: "4 Ay",
     tech: "Lua / LÖVE2D",
     description:
-      "Klasik Bomberman mekaniğini temel alan, harita ve güçlendirme sistemleri içeren 2D oyun denemesi.",
+      "Harita ve power-up sistemleriyle klasik bomber tarzı.",
+    image: `${import.meta.env.BASE_URL}thumbs/bomber.jpg`,
+    youtubeId: "VIDEO_ID_2",
+    link: "https://emiraydin-9.itch.io/your-game"
   },
   {
     id: 3,
-    title: "Örnek Proje 3",
+    title: "Cleaning Rush",
     role: "Gameplay/Shader Programmer",
     year: "2022",
     duration: "3 Hafta",
     tech: "Unity",
     description:
-      "Basit görev bazlı bir prototip: ev içi temizlik ve sürelere karşı yarışma. VFX/Shader denemeleri içerir.",
+      "VFX/Shader denemeleri içeren görev tabanlı prototip.",
+    image: `${import.meta.env.BASE_URL}thumbs/cleaning.jpg`,
+    youtubeId: "VIDEO_ID_3",
+    link: "https://youtu.be/VIDEO_ID_3"
   },
 ];
+
 
 const educations: Education[] = [
   
@@ -106,10 +166,145 @@ const skills = [
   "Git",
 ];
 
+// === Minimal Circuit BG (scroll-parallax canvas) ===
+function CircuitBackground() {
+  const ref = React.useRef<HTMLCanvasElement | null>(null);
+
+  React.useEffect(() => {
+    const canvas = ref.current!;
+    const ctx = canvas.getContext("2d")!;
+    let raf = 0;
+    let dpr = Math.max(1, window.devicePixelRatio || 1);
+    let W = 0, H = 0;
+
+    // grid ayarı (daha seyrek = daha minimal)
+    let spacing = 90;                       // px
+    const nodes: {
+      x: number; y: number;                 // grid konumu (viewport koordinatı)
+      amp: number; speed: number; phase: number;
+      linkRight: boolean; linkDown: boolean;
+    }[] = [];
+    let cols = 0, rows = 0;
+
+    const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      canvas.style.width = W + "px";
+      canvas.style.height = H + "px";
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+
+      // grid’i yeniden kur
+      nodes.length = 0;
+      spacing = W < 640 ? 72 : 90;
+      cols = Math.ceil(W / spacing) + 2;    // kenarlara buffer
+      rows = Math.ceil(H / spacing) + 2;
+
+      for (let r = -1; r < rows - 1; r++) {
+        for (let c = -1; c < cols - 1; c++) {
+          const x = c * spacing + (spacing / 2);
+          const y = r * spacing + (spacing / 2);
+          nodes.push({
+            x, y,
+            amp: 2 + Math.random() * 3,     // hafif titreşim
+            speed: 0.4 + Math.random() * 0.7,
+            phase: Math.random() * Math.PI * 2,
+            linkRight: Math.random() < 0.55, // elektronik devre gibi yatay/dikey kısa bağlantılar
+            linkDown: Math.random() < 0.35,
+          });
+        }
+      }
+    }
+
+    function draw(ts: number) {
+      const t = ts / 1000;
+      ctx.clearRect(0, 0, W, H);
+
+      // scroll parallax (y ekseni): kaydırdıkça desen yavaşça karşı yöne süzülür
+      const scroll = window.scrollY || 0;
+      const yOffset = -((scroll * 0.18) % spacing);
+
+      // stiller
+      const LINE = "rgba(110,231,255,0.09)"; // var(--primary) tonunda çok hafif
+      const DOT  = "rgba(110,231,255,0.55)";
+
+      // bağları çiz (önce çizgi, sonra nokta)
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = LINE;
+
+      // grid boyutunu biliyoruz; sağ ve aşağı komşuya bağlan
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const jRight = i + 1;                 // aynı satırda sağdaki
+        const jDown  = i + (cols - 1);        // bir alt satırdaki (çünkü -1..cols-2 kullandık)
+        const wobbleX = Math.sin(t * n.speed + n.phase) * n.amp;
+        const wobbleY = Math.cos(t * n.speed + n.phase) * n.amp;
+
+        const x = n.x + wobbleX;
+        const y = n.y + wobbleY + yOffset;
+
+        if (n.linkRight && (i % (cols - 1)) !== (cols - 2)) {
+          const r = nodes[jRight];
+          const rx = r.x + Math.sin(t * r.speed + r.phase) * r.amp;
+          const ry = r.y + Math.cos(t * r.speed + r.phase) * r.amp + yOffset;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(rx, ry);
+          ctx.stroke();
+        }
+        if (n.linkDown && i + (cols - 1) < nodes.length) {
+          const d = nodes[jDown];
+          const dx = d.x + Math.sin(t * d.speed + d.phase) * d.amp;
+          const dy = d.y + Math.cos(t * d.speed + d.phase) * d.amp + yOffset;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(dx, dy);
+          ctx.stroke();
+        }
+      }
+
+      // noktalar
+      ctx.fillStyle = DOT;
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        const x = n.x + Math.sin(t * n.speed + n.phase) * n.amp;
+        const y = n.y + Math.cos(t * n.speed + n.phase) * n.amp + yOffset;
+        ctx.beginPath();
+        ctx.arc(x, y, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (!prefersReduced) raf = requestAnimationFrame(draw);
+    }
+
+    resize();
+    if (!prefersReduced) raf = requestAnimationFrame(draw);
+    else draw(0); // hareketi azalt tercihinde statik çiz
+
+    window.addEventListener("resize", resize, { passive: true });
+    window.addEventListener("scroll", () => { /* parallax için sadece yeniden çiz */ }, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return <canvas id="circuit-canvas" ref={ref} aria-hidden />;
+}
+
+
 export default function App() {
   return (
     <div>
       <Style />
+      <CircuitBackground />
+
+      
       <main className="page">
         {/* ——— HERO ——— */}
        <header className="hero">
@@ -164,31 +359,16 @@ export default function App() {
 
 </header>
         {/* ——— PROJELER ——— */}
-        <section className="section" id="game-programming">
-          <h2 className="section__title">Game Programming</h2>
-          <div className="projects">
-            {projects.map((p) => (
-              <article key={p.id} className="card">
-                <div className="card__media" aria-hidden>
-                  {/* Gerçek görsel/video eklemek isterseniz p.image kullanın */}
-                  <div className="poster">
-                    <span className="poster__label">Görsel / Video</span>
-                  </div>
-                </div>
-                <div className="card__body">
-                  <div className="card__meta">
-                    <span className="badge">{p.year}</span>
-                    <span className="badge">{p.duration}</span>
-                    <span className="badge badge--soft">{p.tech}</span>
-                  </div>
-                  <h3 className="card__title">{p.title}</h3>
-                  <p className="card__role">{p.role}</p>
-                  <p className="card__desc">{p.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        {/* ——— PROJELER ——— */}
+<section className="section" id="game-programming">
+  <h2 className="section__title">Game Programming</h2>
+  <div className="projects">
+    {projects.map((p) => (
+      <ProjectCard key={p.id} p={p} />
+    ))}
+  </div>
+</section>
+
 
         {/* ——— EĞİTİM ——— */}
         <section className="section" id="education">
@@ -335,41 +515,96 @@ function Style() {
   /* =========
      PROJECTS
   ========= */
-  .projects{ display:grid; gap:16px; }
-  .card{
-    display:grid;
-    grid-template-columns: 360px 1fr;
-    gap:20px;
-    background:var(--card);
-    border:1px solid var(--ring);
-    border-radius:18px;
-    box-shadow: var(--shadow);
-    overflow:hidden;
-  }
-  .card__media{ position:relative; min-height:200px; }
-  .poster{
-    position:absolute; inset:0;
-    background:
-      radial-gradient(600px 300px at -10% 0%, #1b1b24, transparent),
-      radial-gradient(400px 200px at 120% 120%, #1b1b24, transparent);
-    display:grid; place-items:center;
-  }
-  .poster__label{
-    font-size:12px; color:var(--muted);
-    border:1px dashed #343442; padding:8px 10px;
-    border-radius:10px; background:#101017;
-  }
-  .card__body{ padding:18px 18px 22px; }
-  .card__meta{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
-  .badge{
-    font-size:12px; padding:6px 10px;
-    background:#161620; border:1px solid #282838;
-    border-radius:999px; color:#cfd3ff;
-  }
-  .badge--soft{ color:#9edcff; border-color:#225a70; background:#0e1316; }
-  .card__title{ font-size:18px; margin:6px 0 6px; }
-  .card__role{ margin:0 0 10px; color:#c3c3cf; }
-  .card__desc{ margin:0; color:#d9d9e6; }
+  /* === BEAUTY PASS v2 === */
+
+/* Kart: net hatlar + yumuşak degrade + hafif parıltı */
+/* ===== HOTFIX RESET (ekle ve en sonda dursun) ===== */
+
+/* Liste: tek sütun, tam genişlik, makul boşluk */
+.projects{
+  display:grid !important;
+  grid-template-columns: 1fr !important;
+  gap:18px !important;
+}
+
+/* Kart: grid düzen + tam genişlik */
+.card.card--link{
+  display:grid !important;
+  grid-template-columns: 360px 1fr !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 !important;
+  border-radius:20px !important;
+  border:1px solid rgba(255,255,255,0.12) !important;
+  background: var(--card) !important;
+  box-shadow: var(--shadow) !important;
+  overflow:hidden !important;
+  text-decoration:none !important;
+  color:inherit !important;
+}
+
+/* Medya alanı: oran, pozisyon ve ayrım çizgisi */
+.card__media{
+  position:relative !important;
+  aspect-ratio:16/9 !important;
+  width:100% !important;
+  background:#0f1016 !important;
+  border-right:1px solid rgba(255,255,255,0.10) !important;
+  overflow:hidden !important;
+}
+
+/* Poster ve iframe tam kaplasın */
+.poster-img{
+  position:absolute !important; inset:0 !important;
+  width:100% !important; height:100% !important;
+  object-fit:cover !important;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.poster-img.is-dimmed{ opacity:.10; transform:scale(1.02); }
+
+/* YouTube: siyah kenarları gizlemek için hafif ölçekle */
+.yt-iframe{
+  position:absolute !important; inset:0 !important;
+  width:110% !important; height:110% !important;
+  left:-5% !important; top:-5% !important;
+  border:0 !important;
+  opacity:0; transition:opacity .25s ease;
+  pointer-events:none;
+}
+.yt-iframe.is-active{ opacity:1; }
+
+/* İç içerik: taşıma ve tipografi */
+.card__body{ padding:18px 20px 22px !important; min-width:0; }
+.card__title{ margin:6px 0 8px; font-size:20px; letter-spacing:.2px; }
+.card__role{ margin:0 0 10px; color:#c9c9d6; }
+.card__desc{ margin:0; color:#dfe0ea; line-height:1.55; }
+
+/* Rozetler */
+.card__meta{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.badge{
+  display:inline-flex; align-items:center;
+  padding:6px 10px; border-radius:999px;
+  font-size:12px; line-height:1;
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.14);
+  color:#d7ddff;
+}
+.badge.badge--soft{
+  background: rgba(110,231,255,0.10);
+  border-color: rgba(110,231,255,0.28);
+  color:#aeeaff;
+}
+
+/* Responsive */
+@media (max-width: 880px){
+  .card.card--link{ grid-template-columns: 1fr !important; }
+  .card__media{ border-right:0 !important; }
+}
+@media (max-width: 480px){
+  .card__title{ font-size:18px; }
+  .badge{ padding:6px 9px; }
+}
+
 
   /* =========
      TIMELINE
@@ -395,16 +630,64 @@ function Style() {
     color:#c7c7d6; font-weight:600;
   }
 
-  /* =========
-     ABOUT & FOOTER
-  ========= */
-  #about{ margin-top: 150px;}
-  .about{ font-size:22px; display:grid; gap:1px; color:#d8d8e2; }
+  /* === ABOUT SECTION BEAUTIFY === */
+#about{
+  margin-top: 120px;
+}
+
+.about{
+  background: linear-gradient(145deg, rgba(255,255,255,0.02), rgba(0,0,0,0.15));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 28px 32px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  color: #e1e3ee;
+  font-size: 18px;
+  line-height: 1.6;
+  display: grid;
+  gap: 18px;
+}
+
+/* başlığı biraz daha ayrıştır */
+#about .section__title{
+  font-size: 24px;
+  margin-bottom: 20px;
+  background: linear-gradient(90deg, #6ee7ff, #aeeaff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+
+
 footer {
-  background-color: #0b0b0e; /* siyah arka plan */
+    
   text-align: center;
   padding:30px 0; /* Üst-alt boşluğu büyüt */
 }
+
+/* === Circuit background layer === */
+#circuit-canvas{
+  position: fixed;
+  inset: 0;
+  z-index: 0;              /* içerikten geride */
+  pointer-events: none;    /* tıklamaları engelleme */
+  opacity: .55;            /* çok hafif görünürlük */
+}
+
+/* içerik üstte kalsın */
+.page{ position: relative; z-index: 1; }
+
+/* (opsiyonel) koyu temada biraz daha yumuşatma */
+@supports (backdrop-filter: blur(2px)){
+  #circuit-canvas{ backdrop-filter: blur(0.0px) } /* şimdilik no-blur */
+}
+
+/* hareketi azalt tercihine saygı */
+@media (prefers-reduced-motion: reduce){
+  #circuit-canvas{ opacity:.35; }
+}
+
 
 
   /* =========
@@ -434,7 +717,10 @@ footer {
     .hero .headline h1{ font-size:32px; }
     .btn{ padding:9px 12px; border-radius:10px; }
   }
+ 
+
 `}</style>
+
 
   );
 }
