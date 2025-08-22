@@ -39,10 +39,11 @@ interface Project {
   duration: string;
   tech: string;
   description: string;
-  image: string;       // ZORUNLU: poster görseli (public/ veya import)
-  youtubeId?: string;  // OPSİYONEL: YouTube video ID (hover'da oynatmak için)
-  link?: string;       // OPSİYONEL: kart tıklanınca gidilecek referans linki
+  image: string;
+  youtube?: string;   // ID veya URL
+  link?: string;      // kart tıklama hedefi
 }
+
 
 
 interface Education {
@@ -51,11 +52,40 @@ interface Education {
   degree: string;
 }
 
+// URL ya da ID fark etmeksizin YouTube ID'yi yakala
+function ytIdFrom(input?: string): string | undefined {
+  if (!input) return;
+  // Saf ID ise
+  if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+
+  try {
+    const u = new URL(input);
+    if (u.hostname.includes("youtu.be")) {
+      // https://youtu.be/VIDEOID
+      return u.pathname.split("/")[1]?.slice(0, 11);
+    }
+    if (u.hostname.includes("youtube.com")) {
+      // https://www.youtube.com/watch?v=VIDEOID
+      const v = u.searchParams.get("v");
+      if (v) return v.slice(0, 11);
+      // https://www.youtube.com/shorts/VIDEOID
+      const shorts = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+      if (shorts) return shorts[1];
+      // https://www.youtube.com/embed/VIDEOID
+      const embed = u.pathname.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+      if (embed) return embed[1];
+    }
+  } catch {
+    // URL değilse ve 11 karakter değilse: yok say
+  }
+  return;
+}
 
 function YouTubeEmbed({ id, active }: { id?: string; active: boolean }) {
-  if (!id) return null;
-  // Hover aktif olduğunda autoplay’li URL:
-  const src = `https://www.youtube.com/embed/${id}?autoplay=${active ? 1 : 0}&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&loop=1&playlist=${id}`;
+  const realId = ytIdFrom(id);     // 👈 ID/URL’den gerçek ID çıkar
+  if (!realId) return null;
+
+  const src = `https://www.youtube.com/embed/${realId}?autoplay=${active ? 1 : 0}&mute=1&controls=0&modestbranding=1&rel=0&playsinline=1&loop=1&playlist=${realId}`;
   return (
     <iframe
       className={`yt-iframe ${active ? "is-active" : ""}`}
@@ -68,22 +98,26 @@ function YouTubeEmbed({ id, active }: { id?: string; active: boolean }) {
   );
 }
 
-function ProjectCard({ p }: { p: Project }) {
-  const [hover, setHover] = React.useState(false);
 
+function ProjectCard({ p }: { p: Project }) {
+ const [hover, setHover] = React.useState(false);
+  const yt = ytIdFrom(p.youtube);
+  const href = p.link || (yt ? `https://youtu.be/${yt}` : "#");
   return (
     <a
-      href={p.link || "#"}
-      target="_blank"
-      rel="noreferrer"
-      className="card card--link"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
+  href={p.link || (p.youtube ? `https://www.youtube.com/watch?v=${p.youtube}` : "#")}
+  target="_blank"
+  rel="noreferrer"
+  className="card card--link"
+  onMouseEnter={() => setHover(true)}
+  onMouseLeave={() => setHover(false)}
+>
+
       <div className="card__media" aria-hidden>
         <img className={`poster-img ${hover ? "is-dimmed" : ""}`} src={p.image} alt={`${p.title} poster`} />
-        <YouTubeEmbed id={p.youtubeId} active={hover} />
-        {!p.youtubeId && <div className="poster"><span className="poster__label">Görsel / Video</span></div>}
+        <YouTubeEmbed id={p.youtube} active={hover} />
+
+        {!p.youtube&& <div className="poster"><span className="poster__label">Görsel / Video</span></div>}
       </div>
 
       <div className="card__body">
@@ -103,42 +137,39 @@ function ProjectCard({ p }: { p: Project }) {
 const projects: Project[] = [
   {
     id: 1,
-    title: "Space Shooter Prototype",
-    role: "Gameplay Programmer",
-    year: "2023",
-    duration: "6 Hafta",
-    tech: "C++ / SDL2",
-    description:
-      "ECS ve prosedürel arka plan üretimi denemeleri.",
-    image: `${import.meta.env.BASE_URL}thumbs/spaceshooter.jpg`,
-    youtubeId: "dQw4w9WgXcQ",
-    link: "https://github.com/emircakil/space-shooter"
+    title: "FPS Target Shooter",
+    role: "Blueprint Developer",
+    year: "2025",
+    duration: "2 Weeks",
+    tech: "Blueprint / Unreal Engine",
+    description: "Built my first Unreal Engine FPS using only Blueprints — focused on shooting mechanics & game flow.",
+    image: `${import.meta.env.BASE_URL}thumbs/project1.jpg`,
+    youtube: "https://www.youtube.com/watch?v=EGHD9-Z6It8", // URL
+    link: "https://www.youtube.com/watch?v=EGHD9-Z6It8"  // tıklanınca nereye gitsin istiyorsan
   },
   {
     id: 2,
-    title: "Bomber-like 2D",
-    role: "Gameplay Programmer",
-    year: "2022",
-    duration: "4 Ay",
-    tech: "Lua / LÖVE2D",
-    description:
-      "Harita ve power-up sistemleriyle klasik bomber tarzı.",
-    image: `${import.meta.env.BASE_URL}thumbs/bomber.jpg`,
-    youtubeId: "VIDEO_ID_2",
-    link: "https://emiraydin-9.itch.io/your-game"
+    title: "Paint Copy Game",
+    role: "Data & Game Programmer",
+    year: "2023",
+    duration: "2 Weeks",
+    tech: "C# / Unity",
+    description: "Experimented with user data in JSON format to create a paint-copy mechanic — a fun exercise in data handling.",
+    image: `${import.meta.env.BASE_URL}thumbs/project2.jpg`,
+    youtube: "https://www.youtube.com/watch?v=Ix8Wzr3dsRk", // sadece ID de olur
+    link: "https://www.youtube.com/watch?v=Ix8Wzr3dsRk"
   },
   {
     id: 3,
-    title: "Cleaning Rush",
-    role: "Gameplay/Shader Programmer",
-    year: "2022",
-    duration: "3 Hafta",
-    tech: "Unity",
-    description:
-      "VFX/Shader denemeleri içeren görev tabanlı prototip.",
-    image: `${import.meta.env.BASE_URL}thumbs/cleaning.jpg`,
-    youtubeId: "VIDEO_ID_3",
-    link: "https://youtu.be/VIDEO_ID_3"
+    title: "Smash Ball",
+    role: "Gameplay Programmer (Intern)",
+    year: "2023",
+    duration: "3 Weeks",
+    tech: "C# / Unity",
+    description: "Developed during my internship — a hypercasual pinball-style prototype built in Unity, with simple but effective data storage.",
+    image: `${import.meta.env.BASE_URL}thumbs/project3.jpg`,
+    youtube: "https://www.youtube.com/watch?v=6J8hD11YeW0", // youtu.be link de olur
+    link: "https://www.youtube.com/watch?v=6J8hD11YeW0"
   },
 ];
 
@@ -164,6 +195,7 @@ const skills = [
   "Unity",
   "Java",
   "Git",
+  "SQL",
 ];
 
 // === Minimal Circuit BG (scroll-parallax canvas) ===
@@ -322,10 +354,9 @@ export default function App() {
 
   <div className="headline" style={{ minWidth: 0 }}>
     <h1 style={{ fontSize: 40, margin: 0 }}>Emirhan Aydin Cakil</h1>  
-    <div style={{ opacity: 0.8, marginTop: 6, fontWeight: 600 }}>Gameplay Programmer</div>
+    <div style={{ opacity: 0.8, marginTop: 6, fontWeight: 600 }}>Game Developer</div>
     <p style={{ marginTop: 12, lineHeight: 1.5, opacity: 0.85 }}>
-      Temiz, okunabilir kod. Oynanışı hissettiren sistemler. Yeni şeyler öğrenmeye meraklı, problem çözmeye takıntılı.
-    </p>
+I enjoy writing clean code and building gameplay systems that actually feel fun. I’m curious by nature and always chasing new things to learn. Solving problems is kind of my obsession (to the point where I can’t stop until I figure it out).    </p>
     <div className="actions">
   <a className="btn" href="https://github.com/emircakil" target="_blank" rel="noreferrer">
     {/* GitHub */}
@@ -363,7 +394,7 @@ export default function App() {
         {/* ——— PROJELER ——— */}
         {/* ——— PROJELER ——— */}
 <section className="section" id="game-programming">
-  <h2 className="section__title">Game Programming</h2>
+  <h1 className="section__title">Projects</h1>
   <div className="projects">
     {projects.map((p) => (
       <ProjectCard key={p.id} p={p} />
@@ -647,7 +678,7 @@ function Style() {
   font-size: 18px;
   line-height: 1.6;
   display: grid;
-  gap: 18px;
+  
 }
 
 /* başlığı biraz daha ayrıştır */
