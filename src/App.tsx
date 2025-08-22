@@ -167,6 +167,7 @@ const skills = [
 ];
 
 // === Minimal Circuit BG (scroll-parallax canvas) ===
+// === Minimal Circuit BG (scroll-parallax canvas) ===
 function CircuitBackground() {
   const ref = React.useRef<HTMLCanvasElement | null>(null);
 
@@ -296,6 +297,7 @@ function CircuitBackground() {
 
   return <canvas id="circuit-canvas" ref={ref} aria-hidden />;
 }
+
 
 
 export default function App() {
