@@ -1,6 +1,10 @@
 import React from "react";
 import me from "./assets/me.jpg";
 import cv from './assets/cv.pdf';
+import thumbProject1 from "./assets/thumbs/project1.jpg";
+import thumbProject2 from "./assets/thumbs/project2.jpg";
+import thumbProject3 from "./assets/thumbs/project3.jpg";
+
 
 
 <img src={me} alt="Emirhan Aydın" />
@@ -142,10 +146,11 @@ const projects: Project[] = [
     year: "2025",
     duration: "2 Weeks",
     tech: "Blueprint / Unreal Engine",
-    description: "Built my first Unreal Engine FPS using only Blueprints — focused on shooting mechanics & game flow.",
-    image: `${import.meta.env.BASE_URL}thumbs/project1.jpg`,
-    youtube: "https://www.youtube.com/watch?v=EGHD9-Z6It8", // URL
-    link: "https://www.youtube.com/watch?v=EGHD9-Z6It8"  // tıklanınca nereye gitsin istiyorsan
+    description:
+      "Built my first Unreal Engine FPS using only Blueprints — focused on shooting mechanics & game flow.",
+    image: thumbProject1,
+    youtube: "https://www.youtube.com/watch?v=EGHD9-Z6It8",
+    link: "https://www.youtube.com/watch?v=EGHD9-Z6It8",
   },
   {
     id: 2,
@@ -154,10 +159,11 @@ const projects: Project[] = [
     year: "2023",
     duration: "2 Weeks",
     tech: "C# / Unity",
-    description: "Experimented with user data in JSON format to create a paint-copy mechanic — a fun exercise in data handling.",
-    image: `${import.meta.env.BASE_URL}thumbs/project2.jpg`,
-    youtube: "https://www.youtube.com/watch?v=Ix8Wzr3dsRk", // sadece ID de olur
-    link: "https://www.youtube.com/watch?v=Ix8Wzr3dsRk"
+    description:
+      "Experimented with user data in JSON format to create a paint-copy mechanic — a fun exercise in data handling.",
+    image: thumbProject2,
+    youtube: "https://www.youtube.com/watch?v=Ix8Wzr3dsRk",
+    link: "https://www.youtube.com/watch?v=Ix8Wzr3dsRk",
   },
   {
     id: 3,
@@ -166,13 +172,13 @@ const projects: Project[] = [
     year: "2023",
     duration: "3 Weeks",
     tech: "C# / Unity",
-    description: "Developed during my internship — a hypercasual pinball-style prototype built in Unity, with simple but effective data storage.",
-    image: `${import.meta.env.BASE_URL}thumbs/project3.jpg`,
-    youtube: "https://www.youtube.com/watch?v=6J8hD11YeW0", // youtu.be link de olur
-    link: "https://www.youtube.com/watch?v=6J8hD11YeW0"
+    description:
+      "Developed during my internship — a hypercasual pinball-style prototype built in Unity, with simple but effective data storage.",
+    image: thumbProject3,
+    youtube: "https://www.youtube.com/watch?v=6J8hD11YeW0",
+    link: "https://www.youtube.com/watch?v=6J8hD11YeW0",
   },
 ];
-
 
 const educations: Education[] = [
   
